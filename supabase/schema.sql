@@ -48,3 +48,10 @@ alter table schedule_config enable row level security;
 insert into schedule_config (key, value)
 values ('cron_token', to_jsonb(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')))
 on conflict (key) do nothing;
+
+-- Newer Supabase projects don't auto-grant new tables to the API roles.
+-- Only the server's secret key (service_role) may touch these tables.
+grant select, insert, update, delete on
+  public.schedule_customers, public.schedule_items, public.schedule_push_subs,
+  public.schedule_settings, public.schedule_keys, public.schedule_config
+to service_role;
