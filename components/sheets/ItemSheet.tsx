@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useApp } from '../AppContext'
-import { Field, Icon, Segmented, Sheet } from '../ui'
+import { Field, Icon, KIND_ICON, Segmented, Sheet } from '../ui'
+import { countdown, itemLevel, type Level } from '@/lib/status'
 import { CustomerPicker, type NewPerson } from './CustomerPicker'
 import { mailHref, mapHref, smsHref, telHref } from '../ItemCard'
 import { ALERT_OPTIONS, DEFAULT_ALERTS, dayKey, fmtTime, fmtWhen, fromLocal, quickTimes, timeValue, uid } from '@/lib/dates'
@@ -21,6 +22,42 @@ const isAutoTitle = (title: string, name?: string) =>
   !!name && (KINDS.some((k) => autoTitle(k.id, name) === title) || title === `Meet ${name}`)
 
 const DURATIONS = [30, 60, 120, 180]
+
+const STATUS_WORDS: Record<Level, string> = {
+  green: 'On track',
+  orange: 'Due soon',
+  red: 'Due now',
+  done: 'Done',
+  none: '',
+}
+
+/** Colored bar at the top of the sheet: where this reminder stands right now. */
+function StatusBar({ kind, at, done, doneAt, isNew }: { kind: ItemKind; at: string; done: boolean; doneAt?: string; isNew: boolean }) {
+  const { now, settings } = useApp()
+  const label = KINDS.find((k) => k.id === kind)?.label
+  const lvl = itemLevel({ at, done } as Item, now, settings)
+  const late = !done && new Date(at).getTime() < now
+  const headline = done ? 'Done ✓' : late ? 'Overdue' : STATUS_WORDS[lvl]
+  const detail = done
+    ? `Finished ${doneAt ? fmtWhen(doneAt, now) : ''}`
+    : `${countdown(at, now)} · ${fmtWhen(at, now)}`
+  return (
+    <div className={`card rcard lvl-${lvl} row`} style={{ padding: '14px 16px 14px 22px' }} aria-live="polite">
+      <div className="kind">
+        <Icon name={KIND_ICON[kind]} size={24} />
+      </div>
+      <div className="grow">
+        <div className="small" style={{ fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {isNew ? `New ${label}` : `${label} status`}
+        </div>
+        <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--c)' }}>{headline}</div>
+        <div className="small muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {detail}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /** Call / Text / Email / Map for the reminder's customer. Logs the contact and keeps the sheet open. */
 function ContactButtons({ who, kind, at, where }: { who: Customer; kind: ItemKind; at: string; where?: string }) {
@@ -159,9 +196,19 @@ export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCust
   }
 
   return (
-    <Sheet title={existing ? 'Edit' : KINDS.find((k) => k.id === kind)?.label ?? 'New'} onClose={close}>
+    <Sheet title={`${existing ? 'Edit' : 'New'} ${KINDS.find((k) => k.id === kind)?.label ?? ''}`} onClose={close}>
       <div className="stack" style={{ gap: 18 }} ref={topRef}>
-        <Segmented<ItemKind> value={kind} onChange={changeKind} options={KINDS.map((k) => ({ id: k.id, label: k.label }))} />
+        <StatusBar
+          kind={kind}
+          at={date ? fromLocal(date, time) : new Date().toISOString()}
+          done={Boolean(item?.done)}
+          doneAt={item?.doneAt}
+          isNew={!existing}
+        />
+
+        <Field group label="Type">
+          <Segmented<ItemKind> value={kind} onChange={changeKind} options={KINDS.map((k) => ({ id: k.id, label: k.label }))} />
+        </Field>
 
         <CustomerPicker
           value={customerId}
