@@ -9,6 +9,7 @@
     "vapid": "web-push generate-vapid-keys"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@upstash/redis": "^1.40.0",
     "next": "^16.4.3",
     "react": "^19.3.1",

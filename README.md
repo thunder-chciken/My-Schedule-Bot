@@ -30,51 +30,36 @@ All of these can be changed in **Settings → Countdown colors**.
 
 ---
 
-## Put it online with Vercel (about 15 minutes)
+## Put it online (GitHub → Vercel + Supabase, all free plans)
 
-### 1. Upload the app
+The code lives at github.com/thunder-chciken/My-Schedule-Bot. Vercel redeploys every push to `main`.
 
-Pick **one**:
+### 1. Supabase project (the database)
 
-- **Vercel CLI**: in this folder, run `npx vercel` and follow the prompts (it will ask you to log in). Then `npx vercel --prod`.
-- **GitHub**: push this folder to a GitHub repo, then on vercel.com click **Add New → Project** and import it.
+1. In Supabase, create a project (Free plan, region **East US**).
+2. **SQL Editor → New query**: paste [supabase/schema.sql](supabase/schema.sql) → **Run**. This makes the tables.
+3. **SQL Editor → New query**: paste [supabase/cron.sql](supabase/cron.sql), change `APP_URL` to the app address
+   (e.g. `https://my-schedule-bot.vercel.app`) → **Run**. This is the every-minute alert timer.
 
-### 2. Connect the free database
+The timer runs inside Supabase and uses a password Supabase makes for itself, so there is no outside
+cron service and nothing secret to copy.
 
-In the Vercel dashboard, open the project → **Storage** → **Create** → **Upstash for Redis** (free plan) → connect it to this project.
-This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
+### 2. Vercel settings (environment variables)
 
-### 3. Add the settings (environment variables)
+Project → **Settings → Environment Variables**:
 
-Project → **Settings → Environment Variables**. Copy these from the `.env.local` file in this folder
-(Vercel lets you paste the whole file at once):
-
-| Name | What it is |
+| Name | Where it comes from |
 | --- | --- |
-| `APP_PASSCODE` | **Pick a new 6-digit number.** This is the code to open the app. Numbers only. |
-| `AUTH_SECRET` | Random secret (already generated in `.env.local`) |
-| `CRON_SECRET` | Random secret for the reminder timer |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Push alert key (public) |
-| `VAPID_PRIVATE_KEY` | Push alert key (private, keep secret) |
-| `VAPID_SUBJECT` | `https://storyremodeling.com` (or `mailto:` an email) |
+| `SUPABASE_URL` | Supabase → Project Settings → Data API (looks like `https://xxxx.supabase.co`) |
+| `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys → **Secret key** (or the legacy `service_role` key). Keep it private. |
+| `APP_PASSCODE` | **Pick a 6-digit number.** The code to open the app. Numbers only. |
 
-Then **Deployments → ⋯ → Redeploy** so the settings take effect.
+Then **Deployments → ⋯ → Redeploy**.
 
-> Never change the VAPID keys after phones have turned on alerts, or every device has to turn alerts on again.
+Push alert keys are created automatically the first time the app runs and are saved in Supabase.
+Never delete the `vapid` row in `schedule_config`, or every device has to turn alerts on again.
 
-### 4. Make alerts arrive on time (important)
-
-Vercel's free plan only lets its built-in timer run **once a day** (that one sends the morning briefing).
-For alerts to the minute, use a free pinger:
-
-1. Make a free account at **cron-job.org**.
-2. Create a cron job with the URL
-   `https://YOUR-APP.vercel.app/api/cron?key=YOUR_CRON_SECRET`
-3. Schedule: **every 1 minute**. Save.
-
-_On Vercel Pro you can instead change `vercel.json` to `"schedule": "* * * * *"`._
-
-While the app is open on any device it also checks every minute on its own.
+While the app is open on any device it also checks for due alerts every minute on its own.
 
 ---
 
@@ -103,11 +88,11 @@ npm run dev
 ```
 
 Open http://localhost:3000. The local passcode is in `.env.local`.
-Locally, data is saved in `.data/db.json`. Online, it lives in Upstash Redis.
+Locally, data is saved in `.data/db.json`. Online, it lives in Supabase.
 
 ## How it's built
 
 - Next.js 16 (App Router) + React 19, plain CSS
-- Upstash Redis for storage
+- Supabase (Postgres) for storage, with pg_cron as the every-minute alert timer (Upstash Redis also works)
 - Web Push (VAPID) + a service worker for lock-screen alerts
 - `lib/engine.ts` decides which alerts are due. It is safe to run every minute: every alert is sent once.

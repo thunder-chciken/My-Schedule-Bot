@@ -247,7 +247,7 @@ export function SettingsView() {
           <Icon name="lock" /> Lock App on This Device
         </button>
         <div className="small muted">
-          Time zone: {settings.timezone} · Storage: {status?.storage === 'redis' ? 'Cloud (synced)' : 'This computer only (dev)'}
+          Time zone: {settings.timezone} · Storage: {status?.storage === 'file' ? 'This computer only (dev)' : 'Cloud (synced)'}
         </div>
       </div>
       <p className="small muted" style={{ textAlign: 'center', marginTop: 28 }}>

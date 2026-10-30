@@ -1,16 +1,16 @@
 import { getStore, guarded, json } from '@/lib/auth'
-import { pushConfigured } from '@/lib/push'
+import { getVapid } from '@/lib/push'
 
 export const GET = guarded(async () => {
   const store = getStore()
-  const data = await store.getAll()
+  const [data, vapid, subs] = await Promise.all([store.getAll(), getVapid(store), store.listSubs()])
   return json({
     ...data,
     status: {
       storage: store.kind,
-      push: pushConfigured(),
-      vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null,
-      devices: (await store.listSubs()).length,
+      push: true,
+      vapidKey: vapid.publicKey,
+      devices: subs.length,
     },
   })
 })

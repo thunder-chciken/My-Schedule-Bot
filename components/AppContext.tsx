@@ -15,7 +15,7 @@ export type SheetState =
   | { type: 'snooze'; item: Item }
   | { type: 'note'; customer: Customer }
 
-type Status = { storage: 'redis' | 'file'; push: boolean; vapidKey: string | null; devices: number }
+type Status = { storage: 'supabase' | 'redis' | 'file'; push: boolean; vapidKey: string | null; devices: number }
 
 type Ctx = AppData & {
   now: number

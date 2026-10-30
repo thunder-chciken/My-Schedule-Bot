@@ -7,7 +7,12 @@ export const COOKIE = 'sb_session'
 const MAX_AGE = 60 * 60 * 24 * 180 // stay unlocked for 6 months on a device
 
 function secret() {
-  const s = process.env.AUTH_SECRET || process.env.VAPID_PRIVATE_KEY || process.env.CRON_SECRET
+  const s =
+    process.env.AUTH_SECRET ||
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.VAPID_PRIVATE_KEY ||
+    process.env.CRON_SECRET
   if (!s) throw new Error('AUTH_SECRET is not set')
   return s
 }

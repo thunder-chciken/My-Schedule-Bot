@@ -4,11 +4,13 @@ import { runReminders } from '@/lib/engine'
 
 export const maxDuration = 30
 
-// Called by Vercel Cron (sends "Authorization: Bearer CRON_SECRET") or an outside
-// pinger such as cron-job.org using /api/cron?key=CRON_SECRET, ideally every minute.
+// Called every minute by Supabase pg_cron (supabase/cron.sql) with ?key=<cron_token from the database>.
+// CRON_SECRET (env) also works, sent as "Authorization: Bearer ..." or ?key=.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
   const given = req.headers.get('authorization')?.replace('Bearer ', '') ?? req.nextUrl.searchParams.get('key')
-  if (!secret || given !== secret) return json({ error: 'unauthorized' }, 401)
-  return json(await runReminders(getStore()))
+  if (!given) return json({ error: 'unauthorized' }, 401)
+  const store = getStore()
+  const token = process.env.CRON_SECRET === given ? given : await store.getConfig<string>('cron_token')
+  if (!token || token !== given) return json({ error: 'unauthorized' }, 401)
+  return json(await runReminders(store))
 }
