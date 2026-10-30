@@ -12,9 +12,13 @@ function autoTitle(kind: ItemKind, name?: string) {
   if (!name) return ''
   if (kind === 'callback') return `Call back ${name}`
   if (kind === 'email') return `Email ${name}`
-  if (kind === 'appointment') return `Meet ${name}`
+  if (kind === 'appointment') return `Appointment with ${name}`
   return ''
 }
+
+/** True if `title` is one the app wrote for this customer (any type, including the old "Meet …"). */
+const isAutoTitle = (title: string, name?: string) =>
+  !!name && (KINDS.some((k) => autoTitle(k.id, name) === title) || title === `Meet ${name}`)
 
 const DURATIONS = [30, 60, 120, 180]
 
@@ -64,7 +68,10 @@ export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCust
   const blankPerson = (): NewPerson => ({ name: '', phone: '', email: '', address: item?.location ?? '' })
   const [newPerson, setNewPerson] = useState<NewPerson | null>(newCustomer && !item?.customerId ? blankPerson() : null)
   const [title, setTitle] = useState(item?.title ?? '')
-  const [titleTouched, setTitleTouched] = useState(Boolean(item?.title))
+  // A title the app made ("Call back Matt") keeps following the type and customer; a typed one never changes.
+  const [titleTouched, setTitleTouched] = useState(
+    () => Boolean(item?.title) && !isAutoTitle(item!.title!, customerById(item?.customerId)?.name),
+  )
   const [date, setDate] = useState(dayKey(startAt))
   const [time, setTime] = useState(timeValue(startAt))
   const [pickedQuick, setPickedQuick] = useState<string | null>(null)
@@ -81,7 +88,9 @@ export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCust
 
   const changeKind = (k: ItemKind) => {
     setKind(k)
-    if (!existing) setAlerts(DEFAULT_ALERTS[k])
+    // Switch to the new type's alerts unless he picked his own.
+    const untouched = (a: number[]) => [...a].sort().join() === [...DEFAULT_ALERTS[kind]].sort().join()
+    if (!existing || untouched(alerts)) setAlerts(DEFAULT_ALERTS[k])
     if (k === 'appointment' && !location && who?.address) setLocation(who.address)
   }
 
