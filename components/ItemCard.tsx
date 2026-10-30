@@ -7,12 +7,23 @@ import { fmtWhen } from '@/lib/dates'
 import type { Customer, Item, LogType } from '@/lib/types'
 
 export const telHref = (p?: string) => (p ? `tel:${p.replace(/[^\d+]/g, '')}` : undefined)
-export const smsHref = (p?: string) => (p ? `sms:${p.replace(/[^\d+]/g, '')}` : undefined)
-export const mailHref = (e?: string) => (e ? `mailto:${e}` : undefined)
+const isApple = () => typeof navigator !== 'undefined' && /iPhone|iPad|Macintosh/.test(navigator.userAgent)
+
+/** Optional `body` pre-fills the message (iPhone wants "&body=", Android "?body="). */
+export function smsHref(p?: string, body?: string) {
+  if (!p) return undefined
+  const n = p.replace(/[^\d+]/g, '')
+  return body ? `sms:${n}${isApple() ? '&' : '?'}body=${encodeURIComponent(body)}` : `sms:${n}`
+}
+
+export function mailHref(e?: string, subject?: string, body?: string) {
+  if (!e) return undefined
+  const q = [subject && `subject=${encodeURIComponent(subject)}`, body && `body=${encodeURIComponent(body)}`].filter(Boolean)
+  return `mailto:${e}${q.length ? `?${q.join('&')}` : ''}`
+}
 export function mapHref(addr?: string) {
   if (!addr) return undefined
-  const apple = typeof navigator !== 'undefined' && /iPhone|iPad|Macintosh/.test(navigator.userAgent)
-  return apple
+  return isApple()
     ? `https://maps.apple.com/?q=${encodeURIComponent(addr)}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
 }

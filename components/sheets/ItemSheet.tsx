@@ -4,8 +4,9 @@ import { useMemo, useRef, useState } from 'react'
 import { useApp } from '../AppContext'
 import { Field, Icon, Segmented, Sheet } from '../ui'
 import { CustomerPicker, type NewPerson } from './CustomerPicker'
-import { ALERT_OPTIONS, DEFAULT_ALERTS, dayKey, fmtWhen, fromLocal, quickTimes, timeValue, uid } from '@/lib/dates'
-import { KINDS, type Item, type ItemKind } from '@/lib/types'
+import { mailHref, mapHref, smsHref, telHref } from '../ItemCard'
+import { ALERT_OPTIONS, DEFAULT_ALERTS, dayKey, fmtTime, fmtWhen, fromLocal, quickTimes, timeValue, uid } from '@/lib/dates'
+import { KINDS, type Customer, type Item, type ItemKind, type LogType } from '@/lib/types'
 
 function autoTitle(kind: ItemKind, name?: string) {
   if (!name) return ''
@@ -16,6 +17,41 @@ function autoTitle(kind: ItemKind, name?: string) {
 }
 
 const DURATIONS = [30, 60, 120, 180]
+
+/** Call / Text / Email / Map for the reminder's customer. Logs the contact and keeps the sheet open. */
+function ContactButtons({ who, kind, at, where }: { who: Customer; kind: ItemKind; at: string; where?: string }) {
+  const { settings, logContact, toast } = useApp()
+  const first = who.name.split(' ')[0]
+  const me = settings.ownerName?.trim() || 'Jason'
+  const when = `${new Date(at).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })} at ${fmtTime(at)}`
+  const hello = `Hi ${first}, this is ${me} with Story Remodeling.`
+  const message = kind === 'appointment' ? `${hello} Just confirming our appointment on ${when}${where ? ` at ${where}` : ''}. See you then!` : `${hello} `
+  const subject = kind === 'appointment' ? `Appointment confirmation: ${when}` : 'Story Remodeling'
+  const log = (type: LogType, label: string) => {
+    logContact(who, type)
+    toast(`${label} ${first} · saved to their history`)
+  }
+  return (
+    <div className="contact-actions">
+      <a className={who.phone ? '' : 'disabled'} href={telHref(who.phone)} onClick={() => log('call', 'Calling')}>
+        <Icon name="phone" size={26} />
+        Call
+      </a>
+      <a className={who.phone ? '' : 'disabled'} href={smsHref(who.phone, message)} onClick={() => log('text', 'Texting')}>
+        <Icon name="text" size={26} />
+        Text
+      </a>
+      <a className={who.email ? '' : 'disabled'} href={mailHref(who.email, subject, message)} onClick={() => log('email', 'Emailing')}>
+        <Icon name="mail" size={26} />
+        Email
+      </a>
+      <a className={where ? '' : 'disabled'} href={mapHref(where)} target="_blank" rel="noreferrer">
+        <Icon name="map" size={26} />
+        Map
+      </a>
+    </div>
+  )
+}
 
 export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCustomer?: boolean }) {
   const { close, saveItem, removeItem, saveCustomer, completeItem, customerById, toast, now } = useApp()
@@ -125,6 +161,8 @@ export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCust
           onNewPerson={setNewPerson}
           startNew={(p) => setNewPerson({ ...blankPerson(), ...p })}
         />
+
+        {who && <ContactButtons who={who} kind={kind} at={date ? fromLocal(date, time) : new Date().toISOString()} where={location.trim() || who.address} />}
 
         <Field label="What">
           <input
