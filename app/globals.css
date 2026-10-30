@@ -641,6 +641,53 @@ button.list-row:active,
   margin-top: 14px;
 }
 
+/* "Waiting to hear from you": name on top, buttons underneath */
+.waiting-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.row-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.row-actions .btn,
+.rcard .actions .btn {
+  padding: 0 6px;
+  gap: 5px;
+  min-width: 0;
+}
+
+.btn svg {
+  flex-shrink: 0;
+}
+
+/* 4 buttons in a row on a phone: icon on top, label underneath (like iPhone Contacts) */
+@media (max-width: 480px) {
+  .row-actions:has(> :nth-child(4)) .btn,
+  .rcard .actions:has(> :nth-child(4)) .btn {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 58px;
+    font-size: 14px;
+  }
+}
+
+/* Contact row, then Later/Done row */
+.rcard .actions + .actions {
+  margin-top: 8px;
+}
+
+.rcard .actions:empty {
+  display: none;
+}
+
 .rcard.is-done {
   opacity: 0.6;
 }

@@ -5,8 +5,8 @@ import { useApp } from '../AppContext'
 import { Field, Icon, KIND_ICON, Segmented, Sheet } from '../ui'
 import { countdown, itemLevel, type Level } from '@/lib/status'
 import { CustomerPicker, type NewPerson } from './CustomerPicker'
-import { mailHref, mapHref, smsHref, telHref } from '../ItemCard'
-import { ALERT_OPTIONS, DEFAULT_ALERTS, dayKey, fmtTime, fmtWhen, fromLocal, quickTimes, timeValue, uid } from '@/lib/dates'
+import { contactMessage, mailHref, mapHref, smsHref, telHref } from '../ItemCard'
+import { ALERT_OPTIONS, DEFAULT_ALERTS, dayKey, fmtWhen, fromLocal, quickTimes, timeValue, uid } from '@/lib/dates'
 import { KINDS, type Customer, type Item, type ItemKind, type LogType } from '@/lib/types'
 
 function autoTitle(kind: ItemKind, name?: string) {
@@ -63,11 +63,7 @@ function StatusBar({ kind, at, done, doneAt, isNew }: { kind: ItemKind; at: stri
 function ContactButtons({ who, kind, at, where }: { who: Customer; kind: ItemKind; at: string; where?: string }) {
   const { settings, logContact, toast } = useApp()
   const first = who.name.split(' ')[0]
-  const me = settings.ownerName?.trim() || 'Jason'
-  const when = `${new Date(at).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })} at ${fmtTime(at)}`
-  const hello = `Hi ${first}, this is ${me} with Story Remodeling.`
-  const message = kind === 'appointment' ? `${hello} Just confirming our appointment on ${when}${where ? ` at ${where}` : ''}. See you then!` : `${hello} `
-  const subject = kind === 'appointment' ? `Appointment confirmation: ${when}` : 'Story Remodeling'
+  const { body: message, subject } = contactMessage(who, settings.ownerName, kind, at, where)
   const log = (type: LogType, label: string) => {
     logContact(who, type)
     toast(`${label} ${first} · saved to their history`)

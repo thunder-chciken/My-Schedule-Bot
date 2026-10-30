@@ -3,8 +3,8 @@
 import { useApp } from './AppContext'
 import { Icon, KIND_ICON } from './ui'
 import { countdown, itemLevel } from '@/lib/status'
-import { fmtWhen } from '@/lib/dates'
-import type { Customer, Item, LogType } from '@/lib/types'
+import { fmtTime, fmtWhen } from '@/lib/dates'
+import type { Customer, Item, ItemKind, LogType } from '@/lib/types'
 
 export const telHref = (p?: string) => (p ? `tel:${p.replace(/[^\d+]/g, '')}` : undefined)
 const isApple = () => typeof navigator !== 'undefined' && /iPhone|iPad|Macintosh/.test(navigator.userAgent)
@@ -28,6 +28,19 @@ export function mapHref(addr?: string) {
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
 }
 
+/** Ready-made text/email to the customer. Appointments get a confirmation; anything else just the greeting. */
+export function contactMessage(c: Customer, owner: string, kind?: ItemKind, at?: string, where?: string) {
+  const hello = `Hi ${c.name.split(' ')[0]}, this is ${owner.trim() || 'Jason'} with Story Remodeling.`
+  if (kind === 'appointment' && at) {
+    const when = `${new Date(at).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })} at ${fmtTime(at)}`
+    return {
+      body: `${hello} Just confirming our appointment on ${when}${where ? ` at ${where}` : ''}. See you then!`,
+      subject: `Appointment confirmation: ${when}`,
+    }
+  }
+  return { body: `${hello} `, subject: 'Story Remodeling' }
+}
+
 /** Tap to call/text/email: logs it and asks "follow up again?" right after. */
 export function useContactAction() {
   const { logContact, open } = useApp()
@@ -46,6 +59,7 @@ export function ItemCard({ item }: { item: Item }) {
   const lvl = itemLevel(item, now, settings)
   const late = !item.done && new Date(item.at).getTime() < now
   const where = item.location || (item.kind === 'appointment' ? c?.address : undefined)
+  const msg = c ? contactMessage(c, settings.ownerName, item.kind, item.at, where) : undefined
 
   return (
     <div className={`card rcard lvl-${lvl} ${item.done ? 'is-done' : ''}`}>
@@ -70,19 +84,25 @@ export function ItemCard({ item }: { item: Item }) {
         </div>
       </button>
 
+      {/* Row 1: ways to reach the customer */}
       <div className="actions">
         {!c && (
           <button className="btn sm soft" onClick={() => open({ type: 'item', item, newCustomer: true })}>
             <Icon name="addperson" size={20} /> Customer
           </button>
         )}
-        {c?.phone && item.kind !== 'email' && (
+        {c?.phone && (
           <a className="btn sm soft" href={telHref(c.phone)} onClick={() => contact(c, 'call')}>
             <Icon name="phone" size={20} /> Call
           </a>
         )}
-        {c?.email && item.kind === 'email' && (
-          <a className="btn sm soft" href={mailHref(c.email)} onClick={() => contact(c, 'email')}>
+        {c?.phone && (
+          <a className="btn sm soft" href={smsHref(c.phone, msg?.body)} onClick={() => contact(c, 'text')}>
+            <Icon name="text" size={20} /> Text
+          </a>
+        )}
+        {c?.email && (
+          <a className="btn sm soft" href={mailHref(c.email, msg?.subject, msg?.body)} onClick={() => contact(c, 'email')}>
             <Icon name="mail" size={20} /> Email
           </a>
         )}
@@ -91,6 +111,10 @@ export function ItemCard({ item }: { item: Item }) {
             <Icon name="map" size={20} /> Map
           </a>
         )}
+      </div>
+
+      {/* Row 2: what to do with the reminder */}
+      <div className="actions">
         {!item.done && (
           <button className="btn sm plain" onClick={() => open({ type: 'snooze', item })}>
             <Icon name="snooze" size={20} /> Later

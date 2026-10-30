@@ -2,7 +2,7 @@
 
 import { useApp } from './AppContext'
 import { AlertsBanner } from './AlertsBanner'
-import { ItemCard, telHref, useContactAction } from './ItemCard'
+import { contactMessage, ItemCard, mailHref, smsHref, telHref, useContactAction } from './ItemCard'
 import { Avatar, Empty, Icon } from './ui'
 import { itemLevel, lastContactLabel, staleLevel } from '@/lib/status'
 import { dayKey, greeting } from '@/lib/dates'
@@ -124,30 +124,45 @@ export function Today() {
                   ⏳ Waiting to hear from you <span className="count">{waiting.length}</span>
                 </h2>
                 <div className="list">
-                  {waiting.slice(0, 8).map(({ c, lvl }) => (
-                    <div key={c.id} className="list-row">
-                      <button className="row grow" style={{ textAlign: 'left' }} onClick={() => openCustomer(c.id)}>
-                        <Avatar name={c.name} level={lvl} />
-                        <div className="grow">
-                          <div style={{ fontWeight: 650 }} className="ellipsis">
-                            {c.name}
+                  {waiting.slice(0, 8).map(({ c, lvl }) => {
+                    const { body, subject } = contactMessage(c, settings.ownerName)
+                    const checkIn = `${body}Just checking in to see if you had any questions about your project.`
+                    return (
+                      <div key={c.id} className="list-row waiting-row">
+                        <button className="row grow" style={{ textAlign: 'left', width: '100%' }} onClick={() => openCustomer(c.id)}>
+                          <Avatar name={c.name} level={lvl} />
+                          <div className="grow">
+                            <div style={{ fontWeight: 650 }} className="ellipsis">
+                              {c.name}
+                            </div>
+                            <div className={`small lvl-${lvl}`} style={{ color: 'var(--c)', fontWeight: 600 }}>
+                              {lastContactLabel(c, now)}
+                            </div>
                           </div>
-                          <div className={`small lvl-${lvl}`} style={{ color: 'var(--c)', fontWeight: 600 }}>
-                            {lastContactLabel(c, now)}
-                          </div>
-                        </div>
-                      </button>
-                      {c.phone ? (
-                        <a className="btn sm soft" href={telHref(c.phone)} onClick={() => contact(c, 'call')}>
-                          <Icon name="phone" size={20} /> Call
-                        </a>
-                      ) : (
-                        <button className="btn sm soft" onClick={() => open({ type: 'item', item: { kind: 'callback', customerId: c.id } })}>
-                          <Icon name="bell" size={20} /> Remind
                         </button>
-                      )}
-                    </div>
-                  ))}
+                        <div className="row-actions">
+                          {c.phone && (
+                            <a className="btn sm soft" href={telHref(c.phone)} onClick={() => contact(c, 'call')}>
+                              <Icon name="phone" size={20} /> Call
+                            </a>
+                          )}
+                          {c.phone && (
+                            <a className="btn sm soft" href={smsHref(c.phone, checkIn)} onClick={() => contact(c, 'text')}>
+                              <Icon name="text" size={20} /> Text
+                            </a>
+                          )}
+                          {c.email && (
+                            <a className="btn sm soft" href={mailHref(c.email, subject, checkIn)} onClick={() => contact(c, 'email')}>
+                              <Icon name="mail" size={20} /> Email
+                            </a>
+                          )}
+                          <button className="btn sm plain" onClick={() => open({ type: 'item', item: { kind: 'callback', customerId: c.id } })}>
+                            <Icon name="bell" size={20} /> Remind
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </>
             )}
