@@ -63,7 +63,7 @@ export function FollowUpSheet({ customer, action }: { customer: Customer; action
         <Field label="How did it go? (optional)">
           <textarea className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Left voicemail, wants quote by Friday…" />
         </Field>
-        <Field label="Follow up again?">
+        <Field group label="Follow up again?">
           <div className="chips">
             <button className={`chip ${pick === 'none' ? 'on' : ''}`} onClick={() => setPick('none')}>
               No, all set

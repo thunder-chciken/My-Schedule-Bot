@@ -83,14 +83,14 @@ export function CustomerSheet({ customer, remind }: { customer?: Customer; remin
         <Field label="Address">
           <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Job site address" />
         </Field>
-        <Field label="Stage">
+        <Field group label="Stage">
           <Segmented<Stage> value={stage} onChange={setStage} options={STAGES.map((s) => ({ id: s.id, label: s.label }))} />
         </Field>
         <Field label="Notes">
           <textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What do they want done? Budget? Gate code?" />
         </Field>
         {!customer && (
-          <Field label="Remind me to call them back">
+          <Field group label="Remind me to call them back">
             <div className="chips">
               <button className={`chip ${follow === 'none' ? 'on' : ''}`} onClick={() => setFollow('none')}>
                 No reminder

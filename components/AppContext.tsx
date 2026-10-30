@@ -9,7 +9,7 @@ export type Tab = 'today' | 'calendar' | 'customers' | 'settings'
 
 export type SheetState =
   | { type: 'add' }
-  | { type: 'item'; item?: Partial<Item> }
+  | { type: 'item'; item?: Partial<Item>; newCustomer?: boolean }
   | { type: 'customer'; customer?: Customer; remind?: boolean }
   | { type: 'followup'; customer: Customer; action: LogType }
   | { type: 'snooze'; item: Item }

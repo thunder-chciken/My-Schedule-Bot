@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useApp } from '../AppContext'
 import { Field, Icon, Segmented, Sheet } from '../ui'
 import { CustomerPicker, type NewPerson } from './CustomerPicker'
@@ -17,14 +17,16 @@ function autoTitle(kind: ItemKind, name?: string) {
 
 const DURATIONS = [30, 60, 120, 180]
 
-export function ItemSheet({ item }: { item?: Partial<Item> }) {
+export function ItemSheet({ item, newCustomer }: { item?: Partial<Item>; newCustomer?: boolean }) {
   const { close, saveItem, removeItem, saveCustomer, completeItem, customerById, toast, now } = useApp()
   const existing = Boolean(item?.id && item.createdAt)
   const startAt = item?.at ? new Date(item.at) : new Date(Math.ceil((Date.now() + 3600000) / 900000) * 900000)
+  const topRef = useRef<HTMLDivElement>(null)
 
   const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'callback')
   const [customerId, setCustomerId] = useState<string | undefined>(item?.customerId)
-  const [newPerson, setNewPerson] = useState<NewPerson | null>(null)
+  const blankPerson = (): NewPerson => ({ name: '', phone: '', email: '', address: item?.location ?? '' })
+  const [newPerson, setNewPerson] = useState<NewPerson | null>(newCustomer && !item?.customerId ? blankPerson() : null)
   const [title, setTitle] = useState(item?.title ?? '')
   const [titleTouched, setTitleTouched] = useState(Boolean(item?.title))
   const [date, setDate] = useState(dayKey(startAt))
@@ -59,21 +61,26 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
     const finalTitle = shownTitle.trim()
     if (!finalTitle) return toast('Give it a name, or pick a customer')
     if (!date) return toast('Pick a day')
+    if (!customerId && newPerson && !newPerson.name.trim()) return toast("Add the new customer's name")
     setSaving(true)
     try {
       let cid = customerId
-      if (!cid && newPerson?.name.trim()) {
+      let where = location.trim()
+      if (!cid && newPerson) {
         const stamp = new Date().toISOString()
         const c = await saveCustomer({
           id: uid(),
           name: newPerson.name.trim(),
           phone: newPerson.phone.trim() || undefined,
+          email: newPerson.email.trim() || undefined,
+          address: newPerson.address.trim() || undefined,
           stage: 'lead',
           createdAt: stamp,
           updatedAt: stamp,
           log: [],
         })
         cid = c.id
+        if (kind === 'appointment' && !where) where = c.address ?? ''
       }
       const stamp = new Date().toISOString()
       const at = fromLocal(date, time)
@@ -84,7 +91,7 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
         customerId: cid,
         at,
         durationMin: kind === 'appointment' ? duration : undefined,
-        location: location.trim() || undefined,
+        location: where || undefined,
         notes: notes.trim() || undefined,
         done: item?.done ?? false,
         doneAt: item?.doneAt,
@@ -108,10 +115,16 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
 
   return (
     <Sheet title={existing ? 'Edit' : KINDS.find((k) => k.id === kind)?.label ?? 'New'} onClose={close}>
-      <div className="stack" style={{ gap: 18 }}>
+      <div className="stack" style={{ gap: 18 }} ref={topRef}>
         <Segmented<ItemKind> value={kind} onChange={changeKind} options={KINDS.map((k) => ({ id: k.id, label: k.label }))} />
 
-        <CustomerPicker value={customerId} onChange={setCustomerId} newPerson={newPerson} onNewPerson={setNewPerson} />
+        <CustomerPicker
+          value={customerId}
+          onChange={setCustomerId}
+          newPerson={newPerson}
+          onNewPerson={setNewPerson}
+          startNew={(p) => setNewPerson({ ...blankPerson(), ...p })}
+        />
 
         <Field label="What">
           <input
@@ -125,7 +138,7 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
           />
         </Field>
 
-        <Field label="When">
+        <Field group label="When">
           <div className="chips">
             {quick.map((q) => (
               <button key={q.label} type="button" className={`chip ${pickedQuick === q.label ? 'on' : ''}`} onClick={() => pickQuick(q.label, q.date)}>
@@ -160,7 +173,7 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
 
         {kind === 'appointment' && (
           <>
-            <Field label="How long">
+            <Field group label="How long">
               <div className="chips">
                 {DURATIONS.map((d) => (
                   <button key={d} type="button" className={`chip ${duration === d ? 'on' : ''}`} onClick={() => setDuration(d)}>
@@ -175,7 +188,7 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
           </>
         )}
 
-        <Field label="Alert me">
+        <Field group label="Alert me">
           <div className="chips">
             {ALERT_OPTIONS.map((o) => (
               <button key={o.min} type="button" className={`chip ${alerts.includes(o.min) ? 'on' : ''}`} onClick={() => toggleAlert(o.min)}>
@@ -191,8 +204,20 @@ export function ItemSheet({ item }: { item?: Partial<Item> }) {
         </Field>
 
         <button className="btn primary full xl" onClick={save} disabled={saving}>
-          <Icon name="check" stroke={2.6} /> {saving ? 'Saving…' : 'Save'}
+          <Icon name="check" stroke={2.6} /> {saving ? 'Saving…' : newPerson && !customerId ? 'Save + Add Customer' : 'Save'}
         </button>
+
+        {!customerId && !newPerson && (
+          <button
+            className="btn soft full"
+            onClick={() => {
+              setNewPerson(blankPerson())
+              topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+          >
+            <Icon name="addperson" /> Add as New Customer
+          </button>
+        )}
 
         {existing && item && (
           <div className="grid-2">

@@ -180,12 +180,14 @@ export function Sheet({ title, onClose, children, right }: { title: string; onCl
   )
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+/** `group` renders a div instead of a label, for sections that hold buttons (a label would forward taps to them). */
+export function Field({ label, children, group }: { label: string; children: ReactNode; group?: boolean }) {
+  const Tag = group ? 'div' : 'label'
   return (
-    <label className="field">
+    <Tag className="field">
       <span>{label}</span>
       {children}
-    </label>
+    </Tag>
   )
 }
 

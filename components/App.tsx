@@ -119,7 +119,7 @@ function Shell() {
       </nav>
 
       {sheet?.type === 'add' && <AddMenu />}
-      {sheet?.type === 'item' && <ItemSheet key={sheet.item?.id ?? 'new'} item={sheet.item} />}
+      {sheet?.type === 'item' && <ItemSheet key={sheet.item?.id ?? 'new'} item={sheet.item} newCustomer={sheet.newCustomer} />}
       {sheet?.type === 'customer' && <CustomerSheet customer={sheet.customer} remind={sheet.remind} />}
       {sheet?.type === 'followup' && <FollowUpSheet customer={sheet.customer} action={sheet.action} />}
       {sheet?.type === 'snooze' && <SnoozeSheet item={sheet.item} />}

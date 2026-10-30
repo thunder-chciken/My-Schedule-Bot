@@ -105,6 +105,9 @@ export function CalendarView() {
             <h2 className="section-title grow" style={{ margin: 0 }}>
               {selected === todayKey ? 'Today' : selDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
             </h2>
+            <button className="btn sm soft" onClick={() => open({ type: 'customer', remind: true })}>
+              <Icon name="addperson" size={20} /> Customer
+            </button>
             <button
               className="btn sm primary"
               onClick={() => open({ type: 'item', item: { kind: 'appointment', at: fromLocal(selected, '09:00') } })}

@@ -60,6 +60,11 @@ export function ItemCard({ item }: { item: Item }) {
       </button>
 
       <div className="actions">
+        {!c && (
+          <button className="btn sm soft" onClick={() => open({ type: 'item', item, newCustomer: true })}>
+            <Icon name="addperson" size={20} /> Customer
+          </button>
+        )}
         {c?.phone && item.kind !== 'email' && (
           <a className="btn sm soft" href={telHref(c.phone)} onClick={() => contact(c, 'call')}>
             <Icon name="phone" size={20} /> Call
