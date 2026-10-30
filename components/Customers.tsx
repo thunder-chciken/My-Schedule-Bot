@@ -54,12 +54,17 @@ export function Customers() {
             <Icon name="search" size={20} />
             <input className="input" placeholder="Search name, phone, address…" value={q} onChange={(e) => setQ(e.target.value)} type="search" />
           </div>
-          <Segmented<Filter>
-            scroll
-            value={filter}
-            onChange={setFilter}
-            options={[{ id: 'all', label: 'All' }, ...STAGES.map((s) => ({ id: s.id as Filter, label: s.label }))]}
-          />
+          {/* Wrapping chips (not a scrolling bar) so every label is always fully visible */}
+          <div className="chips" role="tablist" aria-label="Filter by stage">
+            {[{ id: 'all' as Filter, label: 'All' }, ...STAGES.map((s) => ({ id: s.id as Filter, label: s.label }))].map((o) => {
+              const n = o.id === 'all' ? customers.length : customers.filter((c) => c.stage === o.id).length
+              return (
+                <button key={o.id} role="tab" aria-selected={filter === o.id} className={`chip ${filter === o.id ? 'on' : ''}`} onClick={() => setFilter(o.id)}>
+                  {o.label} <span style={{ opacity: 0.6, fontWeight: 600 }}>{n}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
         {list.length ? (
           <div className="list">
