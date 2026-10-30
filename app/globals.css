@@ -729,6 +729,43 @@ button.list-row:active,
   color: var(--muted);
 }
 
+/* Counters are buttons: tap to show their items underneath */
+button.meter {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+button.meter:active:not(:disabled) { transform: scale(0.97); }
+button.meter:disabled { cursor: default; }
+button.meter svg {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  color: var(--c);
+}
+button.meter.on {
+  box-shadow: 0 0 0 3px var(--c), var(--shadow);
+}
+
+.meter-panel {
+  margin: -4px 0 18px;
+  padding: 16px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--c) 7%, var(--card));
+  border: 2px solid color-mix(in srgb, var(--c) 35%, transparent);
+  scroll-margin: 16px;
+  animation: panel-in 0.2s ease;
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter-panel { animation: none; }
+}
+
 /* ---------- Banner ---------- */
 
 .banner {

@@ -65,6 +65,8 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   right: <path d="m9 5 7 7-7 7" />,
+  up: <path d="m5 15 7-7 7 7" />,
+  down: <path d="m5 9 7 7 7-7" />,
   left: <path d="m15 5-7 7 7 7" />,
   x: <path d="M6 6l12 12M18 6 6 18" />,
   trash: (
