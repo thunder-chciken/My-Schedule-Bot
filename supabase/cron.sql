@@ -1,5 +1,5 @@
 -- Every-minute reminder timer. Run once in Supabase: SQL Editor -> New query -> paste -> Run.
--- Replace APP_URL below with the app's Vercel address if it changes, then run again.
+-- If the app's Vercel address ever changes, update the URL below and run this again.
 -- The timer reads its password from schedule_config, so no secret is ever pasted here.
 
 create extension if not exists pg_cron;
@@ -13,7 +13,7 @@ select cron.schedule(
   '* * * * *',
   $$
   select net.http_get(
-    url := 'APP_URL/api/cron?key=' || (select value #>> '{}' from public.schedule_config where key = 'cron_token'),
+    url := 'https://my-schedule-bot.vercel.app/api/cron?key=' || (select value #>> '{}' from public.schedule_config where key = 'cron_token'),
     timeout_milliseconds := 25000
   );
   $$
