@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useApp } from './AppContext'
 import { Icon, Sheet } from './ui'
 import {
@@ -9,11 +9,14 @@ import {
   alertsChanged,
   confirmPush,
   currentSub,
+  deviceKind,
   deviceName,
   disablePush,
   enablePush,
   getPushState,
+  isAndroid,
   isIOS,
+  isStandalone,
   listDevices,
   testPush,
   type AlertHealth,
@@ -74,15 +77,119 @@ function SettingsTips({ what }: { what: string }) {
           </li>
           <li>{FOCUS_TIP}</li>
         </>
+      ) : isAndroid() ? (
+        isStandalone() ? (
+          <>
+            <li>
+              Press and hold the <b>Schedule Bot</b> icon on your Home Screen → <b>App info</b> → <b>Notifications</b>
+            </li>
+            <li>
+              Turn on <b>Allow notifications</b>
+            </li>
+            <li>
+              Swipe down from the top of the screen and make sure <b>Do not disturb</b> is off
+            </li>
+          </>
+        ) : (
+          <>
+            <li>
+              Tap the icon just left of the web address at the top (it looks like a lock or two sliders)
+            </li>
+            <li>
+              Tap <b>Permissions</b> (or <b>Site settings</b>) → <b>Notifications</b> → <b>Allow</b>
+            </li>
+            <li>
+              Not there? Open your phone&apos;s <b>Settings</b> → <b>Apps</b> → <b>Chrome</b> (or Samsung Internet) → <b>Notifications</b> and turn them on
+            </li>
+            <li>
+              Swipe down from the top of the screen and make sure <b>Do not disturb</b> is off
+            </li>
+          </>
+        )
       ) : (
         <>
-          <li>Check that notifications are allowed for this site (the lock icon by the web address)</li>
+          <li>Click the lock icon next to the web address → Notifications → Allow, then reload the page</li>
           <li>Check that your computer&apos;s Do Not Disturb / Focus is off</li>
         </>
       )}
       <li>Then come back and {what}</li>
     </ol>
   )
+}
+
+/** One picture step: a drawn look-alike of the screen with the spot to tap glowing. */
+function GuideStep({ n, text, children }: { n: number; text: ReactNode; children: ReactNode }) {
+  return (
+    <div className="guide-step">
+      <div className="guide-text">
+        <span className="guide-n">{n}</span>
+        <div>{text}</div>
+      </div>
+      <div className="mock">{children}</div>
+    </div>
+  )
+}
+
+const Toggle3 = () => <span className="mock-toggle" aria-hidden />
+
+/** Where to switch alerts back on, drawn for the device he's holding. */
+function BlockedGuide() {
+  const host = typeof location !== 'undefined' ? location.host : 'my-schedule-bot.vercel.app'
+  if (isIOS()) {
+    return (
+      <div className="stack" style={{ gap: 10 }}>
+        <GuideStep n={1} text={<>Open the <b>Settings</b> app, tap <b>Notifications</b></>}>
+          <div className="mock-row hl">🔔 Notifications <span className="chev">›</span></div>
+        </GuideStep>
+        <GuideStep n={2} text={<>Scroll to <b>Schedule Bot</b> and tap it</>}>
+          <div className="mock-row hl">📅 Schedule Bot <span className="chev">›</span></div>
+        </GuideStep>
+        <GuideStep n={3} text={<>Turn on <b>Allow Notifications</b></>}>
+          <div className="mock-row">Allow Notifications <span className="hl-ring"><Toggle3 /></span></div>
+        </GuideStep>
+      </div>
+    )
+  }
+  if (isAndroid() && isStandalone()) {
+    return (
+      <div className="stack" style={{ gap: 10 }}>
+        <GuideStep n={1} text={<>On your Home Screen, <b>press and hold</b> the Schedule Bot icon, tap <b>App info</b> (ⓘ)</>}>
+          <div className="mock-menu">
+            <div className="mock-app">📅</div>
+            <div className="mock-row hl">ⓘ App info</div>
+          </div>
+        </GuideStep>
+        <GuideStep n={2} text={<>Tap <b>Notifications</b></>}>
+          <div className="mock-row hl">🔔 Notifications <span className="chev">›</span></div>
+        </GuideStep>
+        <GuideStep n={3} text={<>Turn on <b>Allow notifications</b></>}>
+          <div className="mock-row">Allow notifications <span className="hl-ring"><Toggle3 /></span></div>
+        </GuideStep>
+      </div>
+    )
+  }
+  if (isAndroid()) {
+    return (
+      <div className="stack" style={{ gap: 10 }}>
+        <GuideStep n={1} text={<>Tap the little icon at the very top, <b>just left of the web address</b></>}>
+          <div className="mock-bar">
+            <span className="hl-ring mock-icon">⚙︎</span>
+            <span className="ellipsis">{host}</span>
+          </div>
+        </GuideStep>
+        <GuideStep n={2} text={<>Tap <b>Permissions</b> (some phones say <b>Site settings</b>)</>}>
+          <div className="mock-row hl">🔒 Permissions <span className="chev">›</span></div>
+        </GuideStep>
+        <GuideStep n={3} text={<>Switch <b>Notifications</b> on</>}>
+          <div className="mock-row">🔔 Notifications <span className="hl-ring"><Toggle3 /></span></div>
+        </GuideStep>
+        <div className="small muted">
+          Still no alerts after that? Open your phone&apos;s <b>Settings → Apps → Chrome → Notifications</b> and make sure they&apos;re on.
+        </div>
+      </div>
+    )
+  }
+  return <SettingsTips what="tap I Turned It On" />
 }
 
 type Phase = 'idle' | 'waiting' | 'arrived' | 'missing' | 'unseen' | 'done'
@@ -107,6 +214,22 @@ export function AlertSetupSheet() {
       refresh()
     } catch (e) {
       toast((e as Error).message)
+    }
+    setBusy(false)
+  }
+
+  // Blocked: some browsers still let us ask again; if not, show the picture guide.
+  const [refused, setRefused] = useState(false)
+  const askAgain = async () => {
+    if (!status?.vapidKey) return toast('Alerts are not set up on the server yet')
+    setBusy(true)
+    try {
+      await enablePush(status.vapidKey)
+      await check()
+      alertsChanged()
+      refresh()
+    } catch {
+      setRefused(true)
     }
     setBusy(false)
   }
@@ -152,14 +275,16 @@ export function AlertSetupSheet() {
     }
   }
 
-  const step = health === 'needs-install' ? 1 : health === 'off' || health === 'blocked' ? 2 : 3
+  // Only iPhone/iPad need the Home Screen step; Android and computers get alerts straight from the browser.
+  const steps = isIOS() ? ['Home Screen', 'Allow alerts', 'Test'] : ['Allow alerts', 'Test']
+  const step = (health === 'needs-install' ? 1 : health === 'off' || health === 'blocked' ? 2 : 3) - (3 - steps.length)
 
   return (
     <Sheet title="Set up alerts" onClose={close}>
       <div className="stack" style={{ gap: 16 }}>
         {health && health !== 'unsupported' && (
-          <div className="setup-steps" aria-label={`Step ${step} of 3`}>
-            {['Home Screen', 'Allow alerts', 'Test'].map((s, i) => (
+          <div className="setup-steps" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} aria-label={`Step ${step} of ${steps.length}`}>
+            {steps.map((s, i) => (
               <div key={s} className={`setup-step ${i + 1 < step ? 'done' : i + 1 === step ? 'on' : ''}`}>
                 <span>{i + 1 < step ? <Icon name="check" size={16} stroke={3} /> : i + 1}</span>
                 {s}
@@ -195,19 +320,36 @@ export function AlertSetupSheet() {
         )}
 
         {health === 'blocked' && (
-          <div className="card pad">
+          <div className="card pad stack" style={{ gap: 14 }}>
             <b style={{ fontSize: 19 }}>Alerts are switched off for Schedule Bot</b>
-            <SettingsTips what="tap Check Again" />
-            <button className="btn primary full xl" onClick={() => check()}>
-              Check Again
-            </button>
+            {!refused ? (
+              <>
+                <div className="muted">Tap the button and choose <b>Allow</b>.</div>
+                <button className="btn primary full xl" onClick={askAgain} disabled={busy}>
+                  <Icon name="bell" /> {busy ? 'Asking…' : 'Turn On Alerts'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="muted">
+                  Your {deviceKind()} won&apos;t let apps ask again once alerts were blocked, so it takes 3 quick taps in its settings. Here&apos;s exactly where:
+                </div>
+                <BlockedGuide />
+                <div className="small muted" style={{ textAlign: 'center' }}>
+                  Come back here when you&apos;re done. Schedule Bot notices on its own.
+                </div>
+                <button className="btn primary full xl" onClick={() => check()}>
+                  I Turned It On
+                </button>
+              </>
+            )}
           </div>
         )}
 
         {health === 'off' && (
           <div className="card pad stack" style={{ gap: 12 }}>
             <b style={{ fontSize: 19 }}>Allow alerts on {here}</b>
-            <div className="muted">Tap the button, then tap <b>Allow</b> when your {isIOS() ? 'iPhone' : 'device'} asks.</div>
+            <div className="muted">Tap the button, then tap <b>Allow</b> when your {deviceKind()} asks.</div>
             <button className="btn primary full xl" onClick={turnOn} disabled={busy}>
               <Icon name="bell" /> {busy ? 'Turning on…' : 'Turn On Alerts'}
             </button>

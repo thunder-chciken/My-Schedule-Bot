@@ -849,6 +849,126 @@ button.meter.on {
   color: #fff;
 }
 
+/* Picture guide for switching blocked alerts back on */
+.guide-step {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--blue-softer);
+}
+.guide-text {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 16px;
+}
+.guide-n {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.mock {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 15px;
+}
+.mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--muted);
+  min-width: 0;
+}
+.mock-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.mock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.mock-row .chev,
+.mock-row .hl-ring {
+  margin-left: auto;
+}
+.mock-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mock-app {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #36a3ff, #0a72f5);
+  font-size: 22px;
+}
+.mock-toggle {
+  display: block;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--green);
+  position: relative;
+}
+.mock-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #fff;
+}
+/* The spot to tap glows */
+.mock-row.hl,
+.hl-ring {
+  box-shadow: 0 0 0 3px var(--blue);
+  animation: guide-pulse 1.6s ease-in-out infinite;
+}
+.hl-ring {
+  border-radius: 999px;
+}
+@keyframes guide-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(10, 122, 255, 0.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mock-row.hl,
+  .hl-ring {
+    animation: none;
+  }
+}
+
 /* "Did you reach them?" right under the contact buttons in a reminder */
 .outcome-ask {
   background: var(--blue-softer);

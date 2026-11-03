@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useApp } from './AppContext'
 import { ago, useAlertHealth } from './AlertSetup'
 import { Icon } from './ui'
-import { deviceName, isIOS } from '@/lib/pushClient'
+import { deviceName, isAndroid, isIOS } from '@/lib/pushClient'
 
 /** Top of Today: what (if anything) he needs to do so alerts reach this device. */
 export function AlertsBanner() {
@@ -50,8 +50,8 @@ export function AlertsBanner() {
         <div className="grow">
           <b style={{ fontSize: 19 }}>Alerts are blocked</b>
           <div style={{ margin: '4px 0 12px' }}>
-            {isIOS()
-              ? 'Open iPhone Settings → Notifications → Schedule Bot and turn on Allow Notifications.'
+            {isIOS() || isAndroid()
+              ? "Tap Show Me How. It's 3 quick taps to switch them back on."
               : 'Click the lock icon next to the web address and allow Notifications.'}
           </div>
           <button className="btn" onClick={setup}>

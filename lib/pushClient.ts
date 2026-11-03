@@ -19,6 +19,11 @@ export function deviceName() {
 export const isIOS = () =>
   /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
+export const isAndroid = () => /Android/.test(navigator.userAgent)
+
+/** "phone" / "tablet" / "computer", for instructions that differ by device. */
+export const deviceKind = () => (/iPad|Android(?!.*Mobile)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'tablet' : /iPhone|Android/.test(navigator.userAgent) ? 'phone' : 'computer')
+
 export const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 
