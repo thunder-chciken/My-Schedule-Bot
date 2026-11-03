@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { api, useApp } from './AppContext'
-import { usePushState } from './AlertsBanner'
+import { ago, useAlertHealth } from './AlertSetup'
 import { Icon, Stepper, Toggle } from './ui'
-import { disablePush, enablePush, isIOS, testPush } from '@/lib/pushClient'
+import { alertsChanged, disablePush, type AlertHealth } from '@/lib/pushClient'
 import { downloadAllVCards, downloadBackup, downloadCsv } from '@/lib/exporters'
 import type { Settings } from '@/lib/types'
 
@@ -14,11 +14,21 @@ const hourLabel = (h: number) => {
   return d.toLocaleTimeString([], { hour: 'numeric' })
 }
 
+const ALERT_LABEL: Record<AlertHealth, string> = {
+  ok: 'Alerts confirmed on this device',
+  untested: 'Alerts on, not tested yet',
+  broken: "The last alert didn't arrive here",
+  off: 'Alerts are off on this device',
+  blocked: 'Alerts are blocked on this device',
+  'needs-install': 'Add the app to your Home Screen first',
+  unsupported: "This browser can't do alerts",
+}
+
 type InstallEvent = Event & { prompt: () => Promise<void> }
 
 export function SettingsView() {
-  const { settings, saveSettings, status, customers, items, toast, refresh } = useApp()
-  const [push, recheck] = usePushState()
+  const { settings, saveSettings, status, customers, items, toast, refresh, open } = useApp()
+  const alerts = useAlertHealth()
   const [busy, setBusy] = useState(false)
   const [install, setInstall] = useState<InstallEvent | null>(null)
   const [name, setName] = useState(settings.ownerName)
@@ -37,32 +47,13 @@ export function SettingsView() {
 
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => saveSettings({ ...settings, [k]: v })
 
-  const turnOn = async () => {
-    if (!status?.vapidKey) return toast('Push keys are missing on the server')
-    setBusy(true)
-    try {
-      await enablePush(status.vapidKey)
-      toast('Alerts are on for this device 🎉')
-      refresh()
-    } catch (e) {
-      toast((e as Error).message)
-    }
-    setBusy(false)
-    recheck()
-  }
-
   const turnOff = async () => {
     setBusy(true)
     await disablePush().catch(() => {})
     setBusy(false)
-    recheck()
+    alertsChanged()
     refresh()
     toast('Alerts off for this device')
-  }
-
-  const test = async () => {
-    const r = await testPush()
-    toast(r.sent ? `Sent to ${r.sent} device${r.sent > 1 ? 's' : ''} — check your screen!` : 'No devices have alerts turned on yet')
   }
 
   const restore = async (f?: File) => {
@@ -89,51 +80,30 @@ export function SettingsView() {
 
       <h2 className="section-title">🔔 Alerts on this device</h2>
       <div className="card pad stack">
-        {push === 'on' && (
+        {alerts.health === 'unsupported' ? (
+          <div className="muted">This browser can&apos;t do push alerts. Try Safari on iPhone/iPad or Chrome/Edge on a computer.</div>
+        ) : (
           <>
             <div className="row">
-              <span className="status-dot lvl-green" />
-              <b className="grow">Alerts are ON</b>
+              <span className={`status-dot lvl-${alerts.health === 'ok' ? 'green' : alerts.health === 'untested' ? 'orange' : 'red'}`} />
+              <div className="grow">
+                <b>{ALERT_LABEL[alerts.health ?? 'off']}</b>
+                {alerts.device?.lastAckAt && <div className="small muted">Last alert arrived {ago(alerts.device.lastAckAt)}</div>}
+              </div>
             </div>
-            <div className="grid-2">
-              <button className="btn soft" onClick={test}>
-                <Icon name="bell" /> Send Test Alert
+            <div className={alerts.health === 'ok' || alerts.health === 'untested' || alerts.health === 'broken' ? 'grid-2' : ''}>
+              <button className={`btn ${alerts.health === 'ok' ? 'soft' : 'primary'} full`} onClick={() => open({ type: 'alerts' })}>
+                <Icon name="bell" /> {alerts.health === 'ok' ? 'Send Test Alert' : alerts.health === 'untested' || alerts.health === 'broken' ? 'Test Alerts' : 'Set Up Alerts'}
               </button>
-              <button className="btn plain" onClick={turnOff} disabled={busy}>
-                Turn Off Here
-              </button>
+              {(alerts.health === 'ok' || alerts.health === 'untested' || alerts.health === 'broken') && (
+                <button className="btn plain full" onClick={turnOff} disabled={busy}>
+                  Turn Off Here
+                </button>
+              )}
             </div>
+            <div className="small muted">Set this up on every device you use: phone, tablet and computer.</div>
           </>
         )}
-        {push === 'off' && (
-          <>
-            <div className="muted">Turn this on for every device you use: phone, tablet and computer.</div>
-            <button className="btn primary xl" onClick={turnOn} disabled={busy}>
-              <Icon name="bell" /> {busy ? 'Turning on…' : 'Turn On Alerts'}
-            </button>
-          </>
-        )}
-        {push === 'needs-install' && (
-          <div>
-            <b>First, add this app to your Home Screen.</b>
-            <ol className="steps">
-              <li>Tap the Share button ⬆︎ in Safari</li>
-              <li>Tap “Add to Home Screen”</li>
-              <li>Open Schedule Bot from the Home Screen, come back here and tap Turn On Alerts</li>
-            </ol>
-          </div>
-        )}
-        {push === 'blocked' && (
-          <div>
-            <b>Alerts are blocked for this app.</b>
-            <div className="muted" style={{ marginTop: 4 }}>
-              {isIOS()
-                ? 'Open the iPhone Settings app → Notifications → Schedule Bot → Allow Notifications.'
-                : 'Click the lock icon by the web address → Notifications → Allow, then reload.'}
-            </div>
-          </div>
-        )}
-        {push === 'unsupported' && <div className="muted">This browser can&apos;t do push alerts. Try Safari on iPhone/iPad or Chrome/Edge on a computer.</div>}
         <div className="small muted">
           {status?.devices ?? 0} device{status?.devices === 1 ? '' : 's'} getting alerts
           {status && !status.push && ' · ⚠️ push keys not set on the server'}

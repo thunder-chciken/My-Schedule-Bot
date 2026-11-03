@@ -53,8 +53,17 @@ self.addEventListener('push', (event) => {
     data = { title: 'My Schedule Bot', body: event.data ? event.data.text() : '' }
   }
   const title = data.title || 'My Schedule Bot'
+  // Tell the server this alert made it to the device, so the app can show "Alerts working"
+  // and warn when alerts are being sent but no longer arriving.
+  const ack = self.registration.pushManager
+    .getSubscription()
+    .then((sub) =>
+      sub &&
+      fetch('/api/push/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }),
+    )
+    .catch(() => {})
   event.waitUntil(
-    self.registration.showNotification(title, {
+    Promise.all([ack, self.registration.showNotification(title, {
       body: data.body || '',
       icon: '/icons/192',
       badge: '/icons/192',
@@ -63,7 +72,7 @@ self.addEventListener('push', (event) => {
       requireInteraction: true,
       vibrate: [200, 100, 200],
       data: { url: data.url || '/' },
-    }),
+    })]),
   )
 })
 

@@ -59,34 +59,61 @@ function StatusBar({ kind, at, done, doneAt, isNew }: { kind: ItemKind; at: stri
   )
 }
 
-/** Call / Text / Email / Map for the reminder's customer. Logs the contact and keeps the sheet open. */
+/**
+ * Call / Text / Email / Map for the reminder's customer. Keeps the sheet open and asks
+ * "did you reach them?" inline; only a yes counts as contact.
+ */
 function ContactButtons({ who, kind, at, where }: { who: Customer; kind: ItemKind; at: string; where?: string }) {
-  const { settings, logContact, toast } = useApp()
+  const { settings, logContact, customerById, toast } = useApp()
   const first = who.name.split(' ')[0]
   const { body: message, subject } = contactMessage(who, settings.ownerName, kind, at, where)
-  const log = (type: LogType, label: string) => {
-    logContact(who, type)
-    toast(`${label} ${first} · saved to their history`)
+  const [asked, setAsked] = useState<LogType | null>(null)
+  const answer = (reached: boolean) => {
+    if (!asked) return
+    const cur = customerById(who.id) ?? who
+    if (reached) {
+      logContact(cur, asked)
+      toast(`Saved to ${first}'s history`)
+    } else if (asked === 'call') {
+      logContact(cur, 'call', 'No answer', true)
+      toast('Logged: no answer. Set a new time below.')
+    }
+    setAsked(null)
   }
   return (
-    <div className="contact-actions">
-      <a className={who.phone ? '' : 'disabled'} href={telHref(who.phone)} onClick={() => log('call', 'Calling')}>
-        <Icon name="phone" size={26} />
-        Call
-      </a>
-      <a className={who.phone ? '' : 'disabled'} href={smsHref(who.phone, message)} onClick={() => log('text', 'Texting')}>
-        <Icon name="text" size={26} />
-        Text
-      </a>
-      <a className={who.email ? '' : 'disabled'} href={mailHref(who.email, subject, message)} onClick={() => log('email', 'Emailing')}>
-        <Icon name="mail" size={26} />
-        Email
-      </a>
-      <a className={where ? '' : 'disabled'} href={mapHref(where)} target="_blank" rel="noreferrer">
-        <Icon name="map" size={26} />
-        Map
-      </a>
-    </div>
+    <>
+      <div className="contact-actions">
+        <a className={who.phone ? '' : 'disabled'} href={telHref(who.phone)} onClick={() => setAsked('call')}>
+          <Icon name="phone" size={26} />
+          Call
+        </a>
+        <a className={who.phone ? '' : 'disabled'} href={smsHref(who.phone, message)} onClick={() => setAsked('text')}>
+          <Icon name="text" size={26} />
+          Text
+        </a>
+        <a className={who.email ? '' : 'disabled'} href={mailHref(who.email, subject, message)} onClick={() => setAsked('email')}>
+          <Icon name="mail" size={26} />
+          Email
+        </a>
+        <a className={where ? '' : 'disabled'} href={mapHref(where)} target="_blank" rel="noreferrer">
+          <Icon name="map" size={26} />
+          Map
+        </a>
+      </div>
+      {asked && (
+        <div className="card pad stack outcome-ask" style={{ gap: 10 }}>
+          <b>{asked === 'call' ? `Did you reach ${first}?` : `Did you send it to ${first}?`}</b>
+          <div className="grid-2">
+            <button className="btn plain" onClick={() => answer(false)}>
+              {asked === 'call' ? 'No answer' : "Didn't send"}
+            </button>
+            <button className="btn primary" onClick={() => answer(true)}>
+              <Icon name="check" size={20} stroke={2.6} /> {asked === 'call' ? 'Talked to them' : 'Sent it'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

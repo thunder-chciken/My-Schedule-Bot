@@ -41,14 +41,14 @@ export function contactMessage(c: Customer, owner: string, kind?: ItemKind, at?:
   return { body: `${hello} `, subject: 'Story Remodeling' }
 }
 
-/** Tap to call/text/email: logs it and asks "follow up again?" right after. */
+/**
+ * Tap to call/text/email: opens "How did it go?" right after. Nothing is logged until he says
+ * what happened, so an unanswered call never counts as contact.
+ */
 export function useContactAction() {
-  const { logContact, open } = useApp()
+  const { open } = useApp()
   return (c: Customer, type: LogType) => {
-    setTimeout(async () => {
-      const next = await logContact(c, type)
-      open({ type: 'followup', customer: next, action: type })
-    }, 400)
+    setTimeout(() => open({ type: 'followup', customer: c, action: type }), 400)
   }
 }
 

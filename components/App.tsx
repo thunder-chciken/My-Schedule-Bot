@@ -7,6 +7,7 @@ import { CalendarView } from './CalendarView'
 import { Customers } from './Customers'
 import { SettingsView } from './SettingsView'
 import { Lock } from './Lock'
+import { AlertSetupSheet } from './AlertSetup'
 import { Icon } from './ui'
 import { ItemSheet } from './sheets/ItemSheet'
 import { CustomerSheet } from './sheets/CustomerSheet'
@@ -124,6 +125,7 @@ function Shell() {
       {sheet?.type === 'followup' && <FollowUpSheet customer={sheet.customer} action={sheet.action} />}
       {sheet?.type === 'snooze' && <SnoozeSheet item={sheet.item} />}
       {sheet?.type === 'note' && <NoteSheet customer={sheet.customer} />}
+      {sheet?.type === 'alerts' && <AlertSetupSheet />}
 
       {toastMsg && <div className="toast">{toastMsg}</div>}
     </div>

@@ -18,9 +18,9 @@ export async function getVapid(store: Store): Promise<Vapid> {
   return store.initConfig<Vapid>('vapid', webpush.generateVAPIDKeys())
 }
 
-/** Send to every phone/tablet/computer that turned alerts on. Dead subscriptions are cleaned up. */
-export async function pushAll(store: Store, payload: PushPayload) {
-  const subs = await store.listSubs()
+/** Send to every phone/tablet/computer that turned alerts on (or just `only`). Dead subscriptions are cleaned up. */
+export async function pushAll(store: Store, payload: PushPayload, only?: string) {
+  const subs = (await store.listSubs()).filter((s) => !only || s.endpoint === only)
   if (!subs.length) return { sent: 0, failed: 0 }
   const { publicKey, privateKey } = await getVapid(store)
   const vapidDetails = { subject: process.env.VAPID_SUBJECT || 'https://storyremodeling.com', publicKey, privateKey }
@@ -29,7 +29,11 @@ export async function pushAll(store: Store, payload: PushPayload) {
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification(s, JSON.stringify(payload), { TTL: 60 * 60 * 6, urgency: 'high', vapidDetails })
+        // Stamp the send first: the device reports back when it arrives (see /api/push/ack), and
+        // a send with no report afterwards is how we spot alerts that silently stopped arriving.
+        // Only the subscription itself goes to web-push; the health fields stay on our side.
+        await store.putSub({ ...s, lastSentAt: new Date().toISOString() })
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload), { TTL: 60 * 60 * 6, urgency: 'high', vapidDetails })
         sent++
       } catch (e) {
         failed++

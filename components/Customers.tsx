@@ -220,7 +220,7 @@ function CustomerDetail({ c }: { c: Customer }) {
             </span>
             <div className="grow">
               <div style={{ fontWeight: 650 }}>
-                {LOG_LABEL[l.type]}
+                {l.missed ? `Tried ${l.type === 'call' ? 'calling' : LOG_LABEL[l.type].toLowerCase()}` : LOG_LABEL[l.type]}
                 <span className="muted small" style={{ fontWeight: 500 }}>
                   {' '}
                   · {fmtWhen(l.at, now)}

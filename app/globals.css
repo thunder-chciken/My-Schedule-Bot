@@ -792,6 +792,70 @@ button.meter.on {
   box-shadow: 0 12px 30px rgba(255, 149, 0, 0.28);
 }
 
+/* Healthy alerts: one quiet green line instead of a banner */
+.alerts-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: #13843c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+/* Alert setup: Home Screen → Allow → Test */
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.setup-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--faint);
+  text-align: center;
+}
+.setup-step span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--line);
+  color: var(--muted);
+  font-weight: 700;
+}
+.setup-step.on {
+  color: var(--blue-dark);
+}
+.setup-step.on span {
+  background: var(--blue);
+  color: #fff;
+}
+.setup-step.done {
+  color: #13843c;
+}
+.setup-step.done span {
+  background: var(--green);
+  color: #fff;
+}
+
+/* "Did you reach them?" right under the contact buttons in a reminder */
+.outcome-ask {
+  background: var(--blue-softer);
+  border: 2px solid var(--blue-soft);
+  animation: panel-in 0.2s ease;
+}
+
 /* ---------- Avatar ---------- */
 
 .avatar {

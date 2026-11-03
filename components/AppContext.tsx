@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { DEFAULT_SETTINGS, type AppData, type Customer, type Item, type LogType, type Settings } from '@/lib/types'
 import { isOverdue } from '@/lib/status'
 import { uid } from '@/lib/dates'
+import { alertsChanged, healPush } from '@/lib/pushClient'
 
 export type Tab = 'today' | 'calendar' | 'customers' | 'settings'
 
@@ -14,6 +15,7 @@ export type SheetState =
   | { type: 'followup'; customer: Customer; action: LogType }
   | { type: 'snooze'; item: Item }
   | { type: 'note'; customer: Customer }
+  | { type: 'alerts' }
 
 type Status = { storage: 'supabase' | 'redis' | 'file'; push: boolean; vapidKey: string | null; devices: number }
 
@@ -39,7 +41,7 @@ type Ctx = AppData & {
   removeItem: (id: string) => Promise<void>
   completeItem: (i: Item) => Promise<void>
   saveSettings: (s: Settings) => Promise<void>
-  logContact: (c: Customer, type: LogType, text?: string) => Promise<Customer>
+  logContact: (c: Customer, type: LogType, text?: string, missed?: boolean) => Promise<Customer>
   customerById: (id?: string) => Customer | undefined
   unlocked: () => void
 }
@@ -128,6 +130,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     refresh()
   }, [apply, refresh])
 
+  // Once per launch: quietly repair alerts if the phone dropped them (iPhones can, after updates).
+  const healed = useRef(false)
+  useEffect(() => {
+    if (!status?.vapidKey || healed.current) return
+    healed.current = true
+    healPush(status.vapidKey)
+      .then((fixed) => fixed && alertsChanged())
+      .catch(() => {})
+  }, [status?.vapidKey])
+
   // The ticking clock that drives every countdown.
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -211,12 +223,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const customerById = useCallback((id?: string) => (id ? customers.find((c) => c.id === id) : undefined), [customers])
 
   const logContact = useCallback(
-    async (c: Customer, type: LogType, text?: string) => {
+    async (c: Customer, type: LogType, text?: string, missed?: boolean) => {
       const at = new Date().toISOString()
       const next: Customer = {
         ...c,
-        lastContactAt: type === 'note' ? c.lastContactAt : at,
-        log: [{ id: uid(), at, type, text }, ...(c.log ?? [])],
+        // A missed try (no answer / never sent) is history, not contact: the "gone quiet" clock keeps running.
+        lastContactAt: type === 'note' || missed ? c.lastContactAt : at,
+        log: [{ id: uid(), at, type, text, ...(missed ? { missed: true } : {}) }, ...(c.log ?? [])],
         updatedAt: at,
       }
       saveCustomer(next).catch(() => {})

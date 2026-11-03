@@ -7,6 +7,8 @@ export type LogEntry = {
   at: string
   type: LogType
   text?: string
+  /** Tried to reach them but didn't (no answer / never sent). Doesn't count as contact. */
+  missed?: boolean
 }
 
 export type Customer = {
@@ -72,6 +74,12 @@ export type PushSub = {
   keys: { p256dh: string; auth: string }
   device?: string
   createdAt: string
+  /** Last time the server sent this device an alert */
+  lastSentAt?: string
+  /** Last time this device reported an alert actually arrived */
+  lastAckAt?: string
+  /** When Jason said "I saw the test alert" on this device */
+  confirmedAt?: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
