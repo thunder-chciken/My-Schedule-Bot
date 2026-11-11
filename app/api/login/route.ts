@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server'
-import { COOKIE, getStore, json, makeSession, passcodeMatches } from '@/lib/auth'
+import { getStore, json, passcodeMatches, startSession } from '@/lib/auth'
 import { StorageNotConfigured } from '@/lib/store'
 
 const LOCKOUT = 15 * 60
@@ -19,14 +19,6 @@ export async function POST(req: NextRequest) {
   if (fails > 8) return json({ error: 'Too many tries. Wait 15 minutes.' }, 429)
   if (!passcode || !passcodeMatches(String(passcode))) return json({ error: 'Wrong passcode' }, 401)
   await store.del(`fail:${ip}`)
-  const s = makeSession()
-  const res = json({ ok: true })
-  res.cookies.set(COOKIE, s.value, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: s.maxAge,
-  })
-  return res
+  // The owner passcode: a backup way in that works even if email or Google is down.
+  return startSession(json({ ok: true }))
 }

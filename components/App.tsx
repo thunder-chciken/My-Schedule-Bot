@@ -6,7 +6,7 @@ import { Today } from './Today'
 import { CalendarView } from './CalendarView'
 import { Customers } from './Customers'
 import { SettingsView } from './SettingsView'
-import { Lock } from './Lock'
+import { Login } from './Login'
 import { AlertSetupSheet } from './AlertSetup'
 import { INSTALL_READY } from './Install'
 import { Icon } from './ui'
@@ -45,7 +45,7 @@ function Shell() {
   const app = useApp()
   const { tab, setTab, problem, loading, sheet, open, toastMsg, items, now, customers } = app
 
-  if (problem === 'locked') return <Lock onUnlock={app.unlocked} />
+  if (problem === 'locked') return <Login onUnlock={app.unlocked} />
 
   if (problem === 'storage') {
     return (
