@@ -5,6 +5,8 @@ import { useApp } from './AppContext'
 import { AlertsBanner } from './AlertsBanner'
 import { contactMessage, ItemCard, mailHref, smsHref, telHref, useContactAction } from './ItemCard'
 import { Avatar, Empty, Icon } from './ui'
+import { InstallButton, useInstall } from './Install'
+import { useAlertHealth } from './AlertSetup'
 import { itemLevel, lastContactLabel, staleLevel } from '@/lib/status'
 import { dayKey, greeting } from '@/lib/dates'
 import type { Item } from '@/lib/types'
@@ -33,6 +35,98 @@ export function QuickActions() {
           <Icon name="addperson" size={28} />
         </span>
         New Customer
+      </button>
+    </div>
+  )
+}
+
+const INSTALL_DISMISSED = 'schedule-bot:install-dismissed'
+
+/** First screen for someone with nothing in the app yet: three steps, each ticking off when done. */
+function Welcome() {
+  const { open } = useApp()
+  const { installed } = useInstall()
+  const { health } = useAlertHealth()
+  const alertsOk = health === 'ok'
+  const steps = [
+    {
+      done: installed,
+      title: 'Install the app',
+      text: 'Puts Schedule Bot on your Home Screen, like any other app.',
+      action: <InstallButton className="btn primary" label="Install" />,
+    },
+    {
+      done: alertsOk,
+      title: 'Turn on alerts',
+      text: 'Your phone buzzes before appointments and when a callback is due.',
+      action:
+        health === 'unsupported' ? null : (
+          <button className="btn primary" onClick={() => open({ type: 'alerts' })}>
+            <Icon name="bell" /> Set Up
+          </button>
+        ),
+    },
+    {
+      done: false,
+      title: 'Add your first customer',
+      text: 'Name and number, and when to call them back. That’s it.',
+      action: (
+        <button className="btn primary" onClick={() => open({ type: 'customer', remind: true })}>
+          <Icon name="addperson" /> Add Customer
+        </button>
+      ),
+    },
+  ]
+  return (
+    <div className="card pad welcome">
+      <h2 style={{ margin: 0, fontSize: 24 }}>Welcome to My Schedule Bot 👋</h2>
+      <p className="muted" style={{ margin: '6px 0 16px' }}>
+        Never forget a callback or lose a customer&apos;s number again. Three quick steps:
+      </p>
+      <div className="stack" style={{ gap: 12 }}>
+        {steps.map((s, i) => (
+          <div key={s.title} className={`welcome-step ${s.done ? 'done' : ''}`}>
+            <span className="welcome-n">{s.done ? <Icon name="check" size={18} stroke={3} /> : i + 1}</span>
+            <div className="grow">
+              <b>{s.title}</b>
+              <div className="small muted">{s.done ? 'Done ✓' : s.text}</div>
+            </div>
+            {!s.done && s.action}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** "Install the app" on the front screen until it's installed (or he says not now on this device). */
+function InstallCard() {
+  const { installed } = useInstall()
+  const [hidden, setHidden] = useState(true)
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem(INSTALL_DISMISSED) === '1')
+    } catch {
+      setHidden(false)
+    }
+  }, [])
+  if (installed || hidden) return null
+  const dismiss = () => {
+    setHidden(true)
+    try {
+      localStorage.setItem(INSTALL_DISMISSED, '1')
+    } catch {}
+  }
+  return (
+    <div className="card pad install-card">
+      <img src="/icons/192" alt="" />
+      <div className="grow">
+        <b>Install the app</b>
+        <div className="small muted">Opens like a regular app and gets alerts.</div>
+      </div>
+      <InstallButton className="btn primary" label="Install" />
+      <button className="icon-btn" aria-label="Not now" onClick={dismiss}>
+        <Icon name="x" size={20} />
       </button>
     </div>
   )
@@ -79,6 +173,7 @@ export function Today() {
   }, [picked, shown])
 
   const name = settings.ownerName?.trim()
+  const brandNew = customers.length === 0 && items.length === 0
 
   return (
     <>
@@ -91,8 +186,16 @@ export function Today() {
         {doneToday > 0 && ` · ${doneToday} done today 🎉`}
       </p>
 
-      <AlertsBanner />
+      {brandNew ? (
+        <Welcome />
+      ) : (
+        <>
+          <InstallCard />
+          <AlertsBanner />
+        </>
+      )}
 
+      {!brandNew && (
       <div className="meters">
         {(Object.keys(groups) as Meter[]).map((m) => {
           const g = groups[m]
@@ -112,6 +215,7 @@ export function Today() {
           )
         })}
       </div>
+      )}
 
       {shown && (
         <div ref={panelRef} className={`meter-panel lvl-${shown.lvl}`}>
@@ -133,7 +237,7 @@ export function Today() {
 
       <QuickActions />
 
-      {openItems.length === 0 && waiting.length === 0 ? (
+      {brandNew ? null : openItems.length === 0 && waiting.length === 0 ? (
         <div style={{ marginTop: 24 }}>
           <Empty title="You're all caught up!" text="No callbacks or appointments waiting. Add one with the big buttons above." />
         </div>

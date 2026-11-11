@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Icon } from './ui'
+import { InstallButton } from './Install'
 
 export function Lock({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState('')
@@ -70,6 +71,9 @@ export function Lock({ onUnlock }: { onUnlock: () => void }) {
             <Icon name="check" size={28} stroke={2.8} />
           </span>
         </button>
+      </div>
+      <div style={{ width: '100%', maxWidth: 320 }}>
+        <InstallButton className="btn soft full" label="Install the App" />
       </div>
     </div>
   )

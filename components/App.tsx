@@ -8,6 +8,7 @@ import { Customers } from './Customers'
 import { SettingsView } from './SettingsView'
 import { Lock } from './Lock'
 import { AlertSetupSheet } from './AlertSetup'
+import { INSTALL_READY } from './Install'
 import { Icon } from './ui'
 import { ItemSheet } from './sheets/ItemSheet'
 import { CustomerSheet } from './sheets/CustomerSheet'
@@ -27,6 +28,7 @@ export default function App() {
     const keep = (e: Event) => {
       e.preventDefault()
       ;(window as unknown as { __bip?: Event }).__bip = e
+      window.dispatchEvent(new Event(INSTALL_READY))
     }
     window.addEventListener('beforeinstallprompt', keep)
     return () => window.removeEventListener('beforeinstallprompt', keep)

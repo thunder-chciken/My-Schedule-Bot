@@ -849,6 +849,61 @@ button.meter.on {
   color: #fff;
 }
 
+/* First-run welcome checklist */
+.welcome {
+  margin-bottom: 16px;
+  border: 2px solid var(--blue-soft);
+}
+.welcome-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--blue-softer);
+  flex-wrap: wrap;
+}
+.welcome-step .grow {
+  min-width: 180px;
+}
+.welcome-step .btn {
+  min-height: 48px;
+}
+.welcome-n {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+}
+.welcome-step.done {
+  background: var(--green-soft);
+}
+.welcome-step.done .welcome-n {
+  background: var(--green);
+}
+
+/* "Install the app" card on Today */
+.install-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.install-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.install-card .grow {
+  min-width: 0;
+}
+
 /* Picture guide for switching blocked alerts back on */
 .guide-step {
   display: grid;

@@ -90,9 +90,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettingsState(d.settings)
   }, [])
 
-  const refresh = useCallback(async () => {
+  // Every local change bumps `edits`; `writing` counts saves/deletes still on their way to the server.
+  // A sync that started before a change (or lands while one is in flight) carries an older copy,
+  // so it's thrown away instead of putting a deleted customer back or undoing an edit.
+  const edits = useRef(0)
+  const writing = useRef(0)
+  const retry = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const write = useCallback(async <T,>(send: () => Promise<T>) => {
+    edits.current++
+    writing.current++
+    try {
+      return await send()
+    } finally {
+      writing.current--
+      edits.current++
+    }
+  }, [])
+
+  const refresh = useCallback(async (): Promise<void> => {
+    const startedAt = edits.current
     try {
       const d = await api<AppData & { status: Status }>('/api/data')
+      if (writing.current > 0 || edits.current !== startedAt) {
+        clearTimeout(retry.current)
+        retry.current = setTimeout(() => refresh(), 1500)
+        return
+      }
       apply(d)
       setStatus(d.status)
       setProblem(null)
@@ -177,45 +200,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (c: Customer) => {
       setCustomers((list) => [...list.filter((x) => x.id !== c.id), c])
       try {
-        return await api<Customer>('/api/customers', { method: 'POST', body: JSON.stringify(c) })
+        return await write(() => api<Customer>('/api/customers', { method: 'POST', body: JSON.stringify(c) }))
       } catch (e) {
         toast(`Couldn't save: ${(e as Error).message}`)
         refresh()
         throw e
       }
     },
-    [refresh, toast],
+    [refresh, toast, write],
   )
 
   const removeCustomer = useCallback(
     async (id: string) => {
       setCustomers((list) => list.filter((x) => x.id !== id))
       setItems((list) => list.filter((x) => x.customerId !== id))
-      await api(`/api/customers?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => refresh())
+      try {
+        await write(() => api(`/api/customers?id=${encodeURIComponent(id)}`, { method: 'DELETE' }))
+      } catch (e) {
+        // Say so instead of quietly letting them reappear.
+        toast(`Couldn't delete: ${(e as Error).message}`)
+        refresh()
+        throw e
+      }
     },
-    [refresh],
+    [refresh, toast, write],
   )
 
   const saveItem = useCallback(
     async (i: Item) => {
       setItems((list) => [...list.filter((x) => x.id !== i.id), i])
       try {
-        return await api<Item>('/api/items', { method: 'POST', body: JSON.stringify(i) })
+        return await write(() => api<Item>('/api/items', { method: 'POST', body: JSON.stringify(i) }))
       } catch (e) {
         toast(`Couldn't save: ${(e as Error).message}`)
         refresh()
         throw e
       }
     },
-    [refresh, toast],
+    [refresh, toast, write],
   )
 
   const removeItem = useCallback(
     async (id: string) => {
       setItems((list) => list.filter((x) => x.id !== id))
-      await api(`/api/items?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => refresh())
+      await write(() => api(`/api/items?id=${encodeURIComponent(id)}`, { method: 'DELETE' })).catch((e) => {
+        toast(`Couldn't delete: ${(e as Error).message}`)
+        refresh()
+      })
     },
-    [refresh],
+    [refresh, toast, write],
   )
 
   const close = useCallback(() => setSheet(null), [])
@@ -256,9 +289,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saveSettings = useCallback(
     async (s: Settings) => {
       setSettingsState(s)
-      await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }).catch(() => toast("Couldn't save settings"))
+      await write(() => api('/api/settings', { method: 'POST', body: JSON.stringify(s) })).catch(() => toast("Couldn't save settings"))
     },
-    [toast],
+    [toast, write],
   )
 
   const setTab = useCallback((t: Tab) => {

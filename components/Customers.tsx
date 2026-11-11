@@ -126,9 +126,13 @@ function CustomerDetail({ c }: { c: Customer }) {
 
   const del = async () => {
     if (!confirm(`Delete ${c.name} and their reminders? This can't be undone.`)) return
-    await removeCustomer(c.id)
     openCustomer(null)
-    toast(`${c.name} deleted`)
+    try {
+      await removeCustomer(c.id)
+      toast(`${c.name} deleted`)
+    } catch {
+      // removeCustomer already told him it failed and put them back.
+    }
   }
 
   return (

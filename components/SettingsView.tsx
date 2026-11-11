@@ -27,7 +27,7 @@ const ALERT_LABEL: Record<AlertHealth, string> = {
 type InstallEvent = Event & { prompt: () => Promise<void> }
 
 export function SettingsView() {
-  const { settings, saveSettings, status, customers, items, toast, refresh, open } = useApp()
+  const { settings, saveSettings, status, customers, items, toast, refresh, open, setTab } = useApp()
   const alerts = useAlertHealth()
   const [busy, setBusy] = useState(false)
   const [install, setInstall] = useState<InstallEvent | null>(null)
@@ -66,6 +66,28 @@ export function SettingsView() {
     } catch {
       toast("That file didn't look like a Schedule Bot backup")
     }
+  }
+
+  const startFresh = async () => {
+    const n = customers.length
+    const m = items.length
+    if (!confirm(`Erase all ${n} customer${n === 1 ? '' : 's'} and ${m} reminder${m === 1 ? '' : 's'} on every device?\n\nA backup file will download first so you can restore them.`)) return
+    setBusy(true)
+    downloadBackup({ customers, items, settings })
+    try {
+      // Give the download a moment to start before the data goes away.
+      await new Promise((ok) => setTimeout(ok, 800))
+      const r = await api<{ customers: number; items: number }>('/api/reset', { method: 'POST', body: JSON.stringify({ confirm: 'START FRESH' }) })
+      try {
+        for (const k of ['schedule-bot-cache', 'schedule-bot:install-dismissed']) localStorage.removeItem(k)
+      } catch {}
+      await refresh()
+      setTab('today')
+      toast(`Erased ${r.customers} customers and ${r.items} reminders. Fresh start!`)
+    } catch (e) {
+      toast(`Couldn't erase: ${(e as Error).message}`)
+    }
+    setBusy(false)
   }
 
   const lock = async () => {
@@ -209,6 +231,17 @@ export function SettingsView() {
         </div>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => restore(e.target.files?.[0])} />
         <div className="small muted">Tip: save a full backup once a month to your email or Files.</div>
+      </div>
+
+      <h2 className="section-title">🧹 Start fresh</h2>
+      <div className="card pad stack">
+        <div className="muted">
+          Erase every customer and reminder on all devices and put settings back to how they started, so the app is brand new.
+          A backup file downloads first, so you can bring everything back with <b>Restore Backup</b>.
+        </div>
+        <button className="btn danger" onClick={startFresh} disabled={busy}>
+          <Icon name="trash" /> {busy ? 'Erasing…' : 'Start Fresh'}
+        </button>
       </div>
 
       <h2 className="section-title">🔒 Security</h2>
