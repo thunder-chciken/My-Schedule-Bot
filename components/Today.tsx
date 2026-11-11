@@ -7,6 +7,7 @@ import { contactMessage, ItemCard, mailHref, smsHref, telHref, useContactAction 
 import { Avatar, Empty, Icon } from './ui'
 import { InstallButton, useInstall } from './Install'
 import { useAlertHealth } from './AlertSetup'
+import { isIOS } from '@/lib/pushClient'
 import { itemLevel, lastContactLabel, staleLevel } from '@/lib/status'
 import { dayKey, greeting } from '@/lib/dates'
 import type { Item } from '@/lib/types'
@@ -51,9 +52,9 @@ function Welcome() {
   const steps = [
     {
       done: installed,
-      title: 'Install the app',
+      title: isIOS() ? 'Add to your Home Screen' : 'Install the app',
       text: 'Puts Schedule Bot on your Home Screen, like any other app.',
-      action: <InstallButton className="btn primary" label="Install" />,
+      action: <InstallButton className="btn primary" label="Install" iosLabel="Show Me How" />,
     },
     {
       done: alertsOk,
@@ -121,10 +122,10 @@ function InstallCard() {
     <div className="card pad install-card">
       <img src="/icons/192" alt="" />
       <div className="grow">
-        <b>Install the app</b>
+        <b>{isIOS() ? 'Add to your Home Screen' : 'Install the app'}</b>
         <div className="small muted">Opens like a regular app and gets alerts.</div>
       </div>
-      <InstallButton className="btn primary" label="Install" />
+      <InstallButton className="btn primary" label="Install" iosLabel="Show Me How" />
       <button className="icon-btn" aria-label="Not now" onClick={dismiss}>
         <Icon name="x" size={20} />
       </button>

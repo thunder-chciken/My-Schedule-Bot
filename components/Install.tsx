@@ -36,41 +36,68 @@ export function useInstall() {
 /** Step-by-step for phones whose browser won't install with one tap (every iPhone). */
 function InstallGuide({ onClose }: { onClose: () => void }) {
   const ios = isIOS()
-  const safari = ios && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent)
+  const chrome = /CriOS/.test(navigator.userAgent)
   return (
-    <Sheet title="Install My Schedule Bot" onClose={onClose}>
+    <Sheet title={ios ? 'Add to your Home Screen' : 'Install My Schedule Bot'} onClose={onClose}>
       <div className="stack" style={{ gap: 12 }}>
-        <div className="muted">It puts an icon on your Home Screen and opens like a regular app, with alerts.</div>
+        <div className="muted">
+          {ios
+            ? 'Apple doesn’t let apps install themselves on iPhone, so it’s a few quick taps. After that, Schedule Bot gets its own icon and works like any other app, with alerts.'
+            : 'It puts an icon on your Home Screen and opens like a regular app, with alerts.'}
+        </div>
         {ios ? (
           <>
-            {!safari && (
-              <div className="card pad small">
-                Tip: this works best in <b>Safari</b>. If you don&apos;t see “Add to Home Screen”, open this page in Safari.
-              </div>
-            )}
             <div className="guide-step">
               <div className="guide-text">
                 <span className="guide-n">1</span>
                 <div>
-                  Tap the <b>Share</b> button {safari ? 'at the bottom of the screen' : 'next to the web address'}
+                  {chrome ? (
+                    <>
+                      Tap the <b>Share</b> button at the top right, next to the web address
+                    </>
+                  ) : (
+                    <>
+                      Close this box, then tap the <b>Share</b> button at the <b>bottom</b> of Safari
+                    </>
+                  )}
                 </div>
               </div>
               <div className="mock">
-                <div className="mock-row hl" style={{ justifyContent: 'center', fontSize: 24 }}>
-                  <Icon name="share" size={26} />
-                </div>
+                {chrome ? (
+                  <div className="mock-bar">
+                    <span className="ellipsis grow">my-schedule-bot.vercel.app</span>
+                    <span className="hl-ring mock-icon">
+                      <Icon name="share" size={18} />
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mock-toolbar" aria-hidden>
+                    <span>‹</span>
+                    <span>›</span>
+                    <span className="hl-ring mock-icon">
+                      <Icon name="share" size={18} />
+                    </span>
+                    <span>📖</span>
+                    <span>⧉</span>
+                  </div>
+                )}
+                {!chrome && (
+                  <div className="small muted">
+                    No Share button on the bar? On newer iPhones tap <b>⋯</b> at the bottom right first, then <b>Share</b>.
+                  </div>
+                )}
               </div>
             </div>
             <div className="guide-step">
               <div className="guide-text">
                 <span className="guide-n">2</span>
                 <div>
-                  Scroll down and tap <b>Add to Home Screen</b>
+                  Scroll down the list and tap <b>Add to Home Screen</b>
                 </div>
               </div>
               <div className="mock">
                 <div className="mock-row hl">
-                  ➕ Add to Home Screen
+                  <span className="mock-plus">+</span> Add to Home Screen
                 </div>
               </div>
             </div>
@@ -78,7 +105,20 @@ function InstallGuide({ onClose }: { onClose: () => void }) {
               <div className="guide-text">
                 <span className="guide-n">3</span>
                 <div>
-                  Tap <b>Add</b>, then open <b>Schedule Bot</b> from your Home Screen
+                  If you see <b>Open as Web App</b>, leave it switched on. Then tap <b>Add</b> at the top right
+                </div>
+              </div>
+              <div className="mock">
+                <div className="mock-row">
+                  Open as Web App <span className="hl-ring"><span className="mock-toggle" aria-hidden /></span>
+                </div>
+              </div>
+            </div>
+            <div className="guide-step">
+              <div className="guide-text">
+                <span className="guide-n">4</span>
+                <div>
+                  Go to your Home Screen and open <b>Schedule Bot</b> from its new icon
                 </div>
               </div>
               <div className="mock">
@@ -138,10 +178,20 @@ function InstallGuide({ onClose }: { onClose: () => void }) {
 }
 
 /** Big "Install the App" button: one tap where the browser allows it, otherwise the picture guide. Hidden once installed. */
-export function InstallButton({ className = 'btn primary full xl', label = 'Install the App' }: { className?: string; label?: string }) {
+export function InstallButton({
+  className = 'btn primary full xl',
+  label = 'Install the App',
+  iosLabel = 'Add to Home Screen',
+}: {
+  className?: string
+  label?: string
+  /** iPhones can't install with a tap, so the button says what he'll actually do. */
+  iosLabel?: string
+}) {
   const { installed, prompt } = useInstall()
   const [guide, setGuide] = useState(false)
   if (installed) return null
+  const ios = isIOS()
   const go = async () => {
     if (prompt) {
       await prompt.prompt().catch(() => setGuide(true))
@@ -152,7 +202,7 @@ export function InstallButton({ className = 'btn primary full xl', label = 'Inst
   return (
     <>
       <button className={className} onClick={go}>
-        <Icon name="download" /> {label}
+        <Icon name={ios ? 'share' : 'download'} /> {ios ? iosLabel : label}
       </button>
       {guide && <InstallGuide onClose={() => setGuide(false)} />}
     </>
