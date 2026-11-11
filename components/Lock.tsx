@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Icon } from './ui'
 import { InstallButton } from './Install'
 
-/** The number keypad for the owner passcode. `onBack` returns to email / Google sign-in. */
-export function Lock({ onUnlock, onBack }: { onUnlock: () => void; onBack?: () => void }) {
+export function Lock({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState('')
   const [shake, setShake] = useState(false)
   const [msg, setMsg] = useState('Enter your passcode')
@@ -73,14 +72,8 @@ export function Lock({ onUnlock, onBack }: { onUnlock: () => void; onBack?: () =
           </span>
         </button>
       </div>
-      <div style={{ width: '100%', maxWidth: 320 }} className="stack">
-        {onBack ? (
-          <button className="text-btn" onClick={onBack}>
-            ← Sign in with email or Google
-          </button>
-        ) : (
-          <InstallButton className="btn soft full" label="Install the App" />
-        )}
+      <div style={{ width: '100%', maxWidth: 320 }}>
+        <InstallButton className="btn soft full" label="Install the App" />
       </div>
     </div>
   )

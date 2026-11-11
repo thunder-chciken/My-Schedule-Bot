@@ -30,8 +30,6 @@ export interface Store {
   getConfig<T>(key: string): Promise<T | null>
   /** Saves `value` only if nothing is stored yet; returns whatever ends up stored. */
   initConfig<T>(key: string, value: T): Promise<T>
-  /** Saves `value`, replacing whatever was there (e.g. the approved-people list). */
-  setConfig<T>(key: string, value: T): Promise<void>
 }
 
 export class StorageNotConfigured extends Error {
@@ -77,7 +75,6 @@ function redisStore(url: string, token: string): Store {
       await r.set(P + 'cfg:' + key, value, { nx: true })
       return (await r.get<T>(P + 'cfg:' + key)) as T
     },
-    setConfig: async (key, value) => void (await r.set(P + 'cfg:' + key, value)),
   }
 }
 
@@ -155,7 +152,6 @@ function supabaseStore(url: string, key: string): Store {
       const { data } = ok(await db.from(T.config).select('value').eq('key', key).single())
       return data!.value as T
     },
-    setConfig: async (key, value) => void ok(await db.from(T.config).upsert({ key, value }, { onConflict: 'key' })),
   }
 }
 
@@ -234,11 +230,6 @@ function fileStore(): Store {
       }
       return db.config[key] as T
     },
-    setConfig: (key, value) =>
-      edit((db) => {
-        db.config ??= {}
-        db.config[key] = value
-      }),
   }
 }
 

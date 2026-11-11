@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, useApp } from './AppContext'
 import { ago, useAlertHealth } from './AlertSetup'
-import { PeopleCard } from './People'
 import { Icon, Stepper, Toggle } from './ui'
 import { alertsChanged, disablePush, type AlertHealth } from '@/lib/pushClient'
 import { downloadAllVCards, downloadBackup, downloadCsv } from '@/lib/exporters'
@@ -237,9 +236,6 @@ export function SettingsView() {
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => restore(e.target.files?.[0])} />
         <div className="small muted">Tip: save a full backup once a month to your email or Files.</div>
       </div>
-
-      <h2 className="section-title">👥 People who can sign in</h2>
-      <PeopleCard />
 
       <h2 className="section-title">🧹 Start fresh</h2>
       <div className="card pad stack">
