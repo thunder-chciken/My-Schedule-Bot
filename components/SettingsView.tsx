@@ -90,8 +90,12 @@ export function SettingsView() {
     setBusy(false)
   }
 
-  const lock = async () => {
-    await fetch('/api/logout', { method: 'POST' })
+  const logOut = async () => {
+    await fetch('/api/logout', { method: 'POST' }).catch(() => {})
+    // Forget the copy of customers kept on this device, so nothing shows before the passcode.
+    try {
+      localStorage.removeItem('schedule-bot-cache')
+    } catch {}
     location.reload()
   }
 
@@ -246,9 +250,10 @@ export function SettingsView() {
 
       <h2 className="section-title">🔒 Security</h2>
       <div className="card pad stack">
-        <button className="btn plain" onClick={lock}>
-          <Icon name="lock" /> Lock App on This Device
+        <button className="btn plain" onClick={logOut}>
+          <Icon name="lock" /> Log Out
         </button>
+        <div className="small muted">Logs this device out. You&apos;ll need the passcode to get back in.</div>
         <div className="small muted">
           Time zone: {settings.timezone} · Storage: {status?.storage === 'file' ? 'This computer only (dev)' : 'Cloud (synced)'}
         </div>
