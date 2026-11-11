@@ -8,3 +8,6 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .claude
+
+# Backups downloaded from the app contain customer details: never commit them
+schedule-bot-backup-*.json
